@@ -20,6 +20,10 @@ open({
     
     db.exec("CREATE TABLE IF NOT EXISTS doctor(uid INTEGER PRIMARY KEY AUTOINCREMENT,profile TEXT,name TEXT,email TEXT,pass TEXT,token TEXT,education TEXT,experience TEXT,address TEXT);")
     db.exec("CREATE TABLE IF NOT EXISTS room(uid INTEGER PRIMARY KEY AUTOINCREMENT,creatorid INTEGER,creatorname TEXT,totaldoc INTEGER DEFAULT 1);")
+    db.exec('CREATE TABLE IF NOT EXISTS patient(uid INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT,email TEXT,pass TEXT,phone TEXT,age INTEGER,sex TEXT,cholesterol TEXT,diabetes TEXT,familyhistory TEXT,smoking TEXT,obesity TEXT,exercisehoursperweek TEXT,diet TEXT,previousheartproblems TEXT,medicationuse TEXT,stresslevel TEXT,sedentaryhoursperday TEXT,bmi TEXT,triglycerides TEXT,physicalactivitydaysperweek TEXT,sleephoursperday TEXT);')
+    // name,email,pass,phone,age,	sex,	cholesterol,diabetes,familyhistory,smoking,obesity,exercisehoursperweek,diet,previousheartproblems,medicationuse,stresslevel,sedentaryhoursperday,bmi,triglycerides,physicalactivitydaysperweek,sleephoursperday,	Heart Attack,
+// bloodpressure,heartrate
+
 
 
     // })
@@ -28,7 +32,19 @@ open({
   
 
 
-
+exports.createPatient=async(name,email,pass,phone,age,	sex,	cholesterol,diabetes,familyhistory,smoking,obesity,exercisehoursperweek,diet,previousheartproblems,medicationuse,stresslevel,sedentaryhoursperday,bmi,triglycerides,physicalactivitydaysperweek,sleephoursperday)=>{
+  let upass=crypto.createHash('sha256').update(pass).digest('base64');
+  const cmd="SELECT uid FROM patient WHERE email=?;"
+  let data=await getData(cmd,[email])
+  
+  if(data[0]?.uid){
+    return "This email already exists.";
+  }else{
+    await getData("INSERT INTO patient(name,email,pass,phone,age,	sex,	cholesterol,diabetes,familyhistory,smoking,obesity,exercisehoursperweek,diet,previousheartproblems,medicationuse,stresslevel,sedentaryhoursperday,bmi,triglycerides,physicalactivitydaysperweek,sleephoursperday) VALUES(?,?,?,?,?,	?,	?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);",[name,email,upass,phone,age,	sex,	cholesterol,diabetes,familyhistory,smoking,obesity,exercisehoursperweek,diet,previousheartproblems,medicationuse,stresslevel,sedentaryhoursperday,bmi,triglycerides,physicalactivitydaysperweek,sleephoursperday])
+    await getData('UPDATE patient SET profile=? WHERE email=?',[namespaceremover(name)+''+da[0].uid,email])
+    return "OK"
+  }
+}
 
 async function getData(cmd,arg){
   let p = await con.all(cmd,arg)
@@ -89,13 +105,17 @@ if(added){
 
 
 exports.checktoken=async(token)=>{
-  const cmd="SELECT * FROM doctor WHERE token=?;"
+  let cmd="SELECT * FROM doctor WHERE token=?;"
   let data=await getData(cmd,[token])
   if(data[0]?.uid){
     return data[0];
-  }else{
-    return undefined;
   }
+  cmd="SELECT * FROM patient WHERE token=?;"
+  data=await getData(cmd,[token])
+  if(data[0]?.uid){
+    return {...data[0],patient:true}
+  }
+  return undefined;
 }
 
 
@@ -119,9 +139,7 @@ exports.createUser=async(name,email,pass,education,experience,address)=>{
     return "This email already exists.";
   }else{
     await getData("INSERT INTO doctor(name,email,pass,education,experience,address) VALUES(?,?,?,?,?,?);",[name,email,upass,education,experience,address])
-    let da=await getData('SELECT uid FROM doctor WHERE email=?',[email]);
-
-    await getData('UPDATE doctor SET profile=? WHERE uid=?',[namespaceremover(name)+''+da[0].uid,da[0].uid])
+    await getData('UPDATE doctor SET profile=? WHERE email=?',[namespaceremover(name)+''+da[0].uid,email])
     return "OK"
   }
 
@@ -144,15 +162,19 @@ exports.checkauth=async(user,pass)=>{
     let upass=crypto.createHash('sha256').update(pass).digest('base64');
     let salt = crypto.randomBytes(27).toString('hex'); 
     
-    const cmd="SELECT uid FROM doctor WHERE email=? AND pass=?;"
+    let cmd="SELECT uid FROM doctor WHERE email=? AND pass=?;"
     let data=await getData(cmd,[user,upass])
-    if((data&&data[0]?.uid)||data?.uid){
+    if(data[0]?.uid){
       await getData("UPDATE doctor SET token=? WHERE uid=?;",[salt,data[0].uid])
-      return {cookie:salt,name:data[0].name,img:data[0].img,balance:data[0].balance,userType:data[0].userType,profile:data[0].profile};
-    }else{
-      return undefined;
+      return {cookie:salt,name:data[0].name,img:data[0].img,profile:data[0].profile};
     }
-
+    cmd='SELECT uid FROM patient WHERE email=? AND pass=?;'
+    data=await getData(cmd,[user,upass]);
+    if(data[0]?.uid){
+      await getData("UPDATE patient SET token=? WHERE uid=?;",[salt,data[0].uid])
+      return {cookie:salt,name:data[0].name,img:data[0].img,userType:data[0].userType,profile:data[0].profile};
+    }
+    return undefined;
 }
 
 

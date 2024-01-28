@@ -29,6 +29,9 @@ export async function requestLogin(user,pass){
     throw "Failed to login"
 }
 
+
+
+
 export async function loadallroom(){
   let res=await fetch(host+'/api/listallroom',getheader())
     let da=await res.json();

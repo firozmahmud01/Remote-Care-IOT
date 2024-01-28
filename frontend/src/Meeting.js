@@ -24,7 +24,7 @@ export default function MainRoom({roomid}){
         }
     })
 
-    return (<div>
+    return (<div >
 <div style={{position:'fixed',top:'10px',left:'10px'}}>
         <Button variant="contained" color="primary">Submit your Report</Button>
     </div>
